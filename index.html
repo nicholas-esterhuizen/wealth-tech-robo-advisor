@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wealth Tech Robo-Advisor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:        #0b0e11;
+      --surface:   #13181f;
+      --surface2:  #1c232d;
+      --border:    #242c38;
+      --gold:      #c9a84c;
+      --gold-dim:  #8a6e2f;
+      --text:      #e8e2d9;
+      --text-dim:  #7a8494;
+      --text-mid:  #a8b0bc;
+      --green:     #3ecf8e;
+      --amber:     #f5a623;
+      --red:       #e05c5c;
+      --blue:      #5b9bd5;
+      --radius:    4px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; font-weight: 300; font-size: 13px; line-height: 1.7; min-height: 100vh; }
+
+    .disclaimer-banner { background: #1a1200; border-bottom: 1px solid var(--gold-dim); padding: 10px 32px; text-align: center; font-size: 11px; color: var(--gold-dim); letter-spacing: 0.04em; }
+
+    #disclaimerGate { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 32px; }
+    .disclaimer-box { max-width: 640px; width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 48px; }
+    .disclaimer-logo { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 24px; }
+    .disclaimer-title { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 300; color: var(--text); margin-bottom: 24px; line-height: 1.2; }
+    .disclaimer-body { font-size: 12px; color: var(--text-mid); line-height: 1.8; margin-bottom: 32px; }
+    .disclaimer-check { display: flex; align-items: flex-start; gap: 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px; cursor: pointer; transition: border-color 0.2s; }
+    .disclaimer-check:hover { border-color: var(--gold-dim); }
+    .disclaimer-check.checked { border-color: var(--gold); }
+    .disclaimer-check input[type="checkbox"] { display: none; }
+    .check-box { width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 2px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .disclaimer-check.checked .check-box { background: var(--gold); border-color: var(--gold); }
+    .check-tick { color: #0b0e11; font-size: 10px; display: none; }
+    .disclaimer-check.checked .check-tick { display: block; }
+    .check-label { font-size: 11px; color: var(--text-mid); line-height: 1.6; }
+    .disclaimer-check.checked .check-label { color: var(--text); }
+    .btn-enter { width: 100%; background: var(--gold); color: #0b0e11; font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; padding: 14px; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 500; transition: background 0.2s; opacity: 0.4; pointer-events: none; }
+    .btn-enter.enabled { opacity: 1; pointer-events: auto; }
+    .btn-enter.enabled:hover { background: #d4b060; }
+
+    #mainApp { display: none; }
+    header { padding: 48px 32px 32px; border-bottom: 1px solid var(--border); max-width: 960px; margin: 0 auto; }
+    .header-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+    h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(32px,5vw,52px); font-weight: 300; line-height: 1.1; color: var(--text); }
+    h1 span { color: var(--gold); }
+    .header-sub { margin-top: 12px; color: var(--text-dim); font-size: 12px; max-width: 560px; }
+    main { max-width: 960px; margin: 0 auto; padding: 48px 32px 80px; }
+
+    .progress-bar { display: flex; gap: 4px; margin-bottom: 40px; }
+    .progress-step { flex: 1; height: 2px; background: var(--border); transition: background 0.4s; }
+    .progress-step.active { background: var(--gold); }
+    .progress-step.done   { background: var(--gold-dim); }
+    .progress-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 24px; }
+
+    .section { display: none; animation: fadeIn 0.35s ease; }
+    .section.active { display: block; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .section-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 400; color: var(--text); margin-bottom: 6px; }
+    .section-desc  { color: var(--text-dim); font-size: 12px; margin-bottom: 32px; max-width: 520px; }
+
+    .question { margin-bottom: 32px; }
+    .question label { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mid); margin-bottom: 10px; }
+    .question input[type="number"], .question input[type="text"] { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s; }
+    .question input:focus { border-color: var(--gold); }
+    .question .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+    .question .recommended { font-size: 11px; color: var(--gold-dim); margin-top: 4px; }
+
+    .tax-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .tax-field { display: flex; flex-direction: column; gap: 8px; }
+    .tax-field label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mid); }
+    .tax-field input { width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s; }
+    .tax-field input:focus { border-color: var(--gold); }
+    .tax-note { font-size: 11px; color: var(--text-dim); margin-top: 12px; line-height: 1.6; }
+
+    .options { display: flex; flex-direction: column; gap: 8px; max-width: 560px; }
+    .option { display: flex; align-items: flex-start; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; cursor: pointer; transition: all 0.2s; }
+    .option:hover { border-color: var(--gold-dim); }
+    .option.selected { border-color: var(--gold); background: #1a1a0f; }
+    .option input[type="radio"] { display: none; }
+    .option-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--border); flex-shrink: 0; margin-top: 2px; transition: all 0.2s; }
+    .option.selected .option-dot { border-color: var(--gold); background: var(--gold); }
+    .option-text { font-size: 12px; color: var(--text-mid); line-height: 1.5; }
+    .option.selected .option-text { color: var(--text); }
+
+    .dependent-row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+    .dependent-row input { width: 120px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; }
+    .dependent-row input:focus { border-color: var(--gold); }
+    .btn-add { background: none; border: 1px dashed var(--border); border-radius: var(--radius); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.08em; padding: 8px 16px; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
+    .btn-add:hover { border-color: var(--gold-dim); color: var(--text); }
+    .btn-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; padding: 0 4px; }
+    .btn-remove:hover { color: var(--red); }
+
+    .freq-options { display: flex; gap: 8px; flex-wrap: wrap; }
+    .freq-btn { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-mid); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.08em; padding: 10px 20px; cursor: pointer; transition: all 0.2s; }
+    .freq-btn:hover { border-color: var(--gold-dim); }
+    .freq-btn.selected { border-color: var(--gold); background: #1a1a0f; color: var(--text); }
+
+    .nav-row { display: flex; gap: 12px; margin-top: 40px; }
+    .btn { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 13px 28px; border-radius: var(--radius); cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-primary { background: var(--gold); color: #0b0e11; font-weight: 500; }
+    .btn-primary:hover { background: #d4b060; }
+    .btn-secondary { background: var(--surface); color: var(--text-mid); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--gold-dim); color: var(--text); }
+    .error-msg { color: var(--red); font-size: 11px; margin-top: 12px; display: none; }
+
+    #results { display: none; }
+    .results-header { margin-bottom: 40px; }
+    .profile-badge { display: inline-block; background: #1a1a0f; border: 1px solid var(--gold); border-radius: 2px; padding: 4px 14px; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 16px; }
+    .results-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(28px,4vw,44px); font-weight: 300; line-height: 1.1; margin-bottom: 12px; }
+    .results-desc { color: var(--text-dim); font-size: 12px; max-width: 640px; line-height: 1.8; margin-bottom: 10px; }
+    .results-objective { background: var(--surface); border-left: 3px solid var(--gold); border-radius: var(--radius); padding: 14px 20px; font-size: 12px; color: var(--text-mid); max-width: 640px; line-height: 1.7; }
+
+    .section-heading { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+    .score-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 32px 0; }
+    .score-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .score-card-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+    .score-card-value { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 400; color: var(--gold); line-height: 1; }
+    .score-card-max { font-size: 13px; color: var(--text-dim); }
+
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+    .chart-card-title { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 20px; }
+    .chart-wrap canvas { max-height: 300px; }
+    .line-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text-dim); }
+
+    .allocation-section { margin: 40px 0; }
+
+    .etf-table { width: 100%; border-collapse: collapse; }
+    .etf-table th { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .etf-table th.right { text-align: right; }
+    .etf-table td { padding: 16px 14px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text-mid); vertical-align: middle; }
+    .etf-table td.right { text-align: right; vertical-align: middle; }
+    .etf-table tr:last-child td { border-bottom: none; }
+    .etf-ticker { font-family: 'DM Mono', monospace; color: var(--gold); font-weight: 500; font-size: 14px; }
+    .etf-name { color: var(--text); font-size: 12px; margin-top: 2px; }
+    .etf-rationale { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+    .ter-badge { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; padding: 3px 10px; font-size: 12px; color: var(--green); }
+    .tax-badge { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; padding: 3px 8px; font-size: 10px; color: var(--text-dim); margin-top: 6px; }
+    .alloc-pct { font-size: 13px; color: var(--text); font-family: 'DM Mono', monospace; }
+    .dollar-amount { font-size: 13px; color: var(--text); font-family: 'DM Mono', monospace; }
+    .etf-table tfoot td { border-top: 2px solid var(--gold-dim); border-bottom: none; padding-top: 14px; background: var(--surface2); }
+
+    .projection-table { width: 100%; border-collapse: collapse; }
+    .projection-table th { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); text-align: right; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+    .projection-table th:first-child { text-align: left; }
+    .projection-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 12px; text-align: right; }
+    .projection-table tr:last-child td { border-bottom: none; }
+    .projection-table td:first-child { text-align: left; color: var(--text-mid); font-size: 11px; }
+    .proj-gross-nom { color: var(--gold); }
+    .proj-gross-real { color: var(--gold-dim); }
+    .proj-net-nom   { color: var(--green); }
+    .proj-net-real  { color: #2a9063; }
+    .proj-note { font-size: 11px; color: var(--text-dim); margin-top: 12px; line-height: 1.6; }
+
+    .monthly-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--gold); border-radius: var(--radius); padding: 24px; margin-top: 16px; }
+    .monthly-amount { font-family: 'Cormorant Garamond', serif; font-size: 40px; color: var(--gold); line-height: 1; margin: 8px 0; }
+    .monthly-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); }
+    .monthly-note { font-size: 11px; color: var(--text-dim); margin-top: 10px; line-height: 1.6; }
+
+    .guide-step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 12px; }
+    .guide-step-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .guide-step-number { width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: #0b0e11; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .guide-step-title { font-size: 13px; color: var(--text); letter-spacing: 0.04em; }
+    .guide-step-body { font-size: 12px; color: var(--text-mid); line-height: 1.8; white-space: pre-line; }
+
+    .edu-card { background: #0d1a12; border: 1px solid #2a5c3f; border-left: 3px solid var(--green); border-radius: var(--radius); padding: 20px 24px; margin-top: 12px; }
+    .edu-card.urgency-high   { background: #1a0d0d; border-color: var(--red);   border-left-color: var(--red); }
+    .edu-card.urgency-medium { background: #1a130d; border-color: var(--amber); border-left-color: var(--amber); }
+    .edu-urgency { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px; }
+    .urgency-high   .edu-urgency { color: var(--red); }
+    .urgency-medium .edu-urgency { color: var(--amber); }
+    .urgency-low    .edu-urgency { color: var(--green); }
+    .edu-message { font-size: 12px; color: var(--text-mid); line-height: 1.6; }
+
+    .pdf-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+    .btn-pdf { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-mid); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 12px 22px; cursor: pointer; transition: all 0.2s; }
+    .btn-pdf:hover { border-color: var(--gold-dim); color: var(--text); }
+
+    .reset-row { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .btn-reset { background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 22px; cursor: pointer; transition: all 0.2s; }
+    .btn-reset:hover { border-color: var(--gold-dim); color: var(--text); }
+
+    @media (max-width: 680px) {
+      header, main { padding-left: 20px; padding-right: 20px; }
+      .score-grid  { grid-template-columns: 1fr; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .disclaimer-box { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="disclaimerGate">
+  <div class="disclaimer-box">
+    <div class="disclaimer-logo">Wealth Tech · Robo-Advisor</div>
+    <div class="disclaimer-title">Before you begin</div>
+    <div class="disclaimer-body">
+      This tool is a portfolio modelling demonstration built to showcase product management and financial modelling capabilities. It is not a regulated financial service and does not constitute financial advice.<br><br>
+      The output — including risk profiles, ETF recommendations, asset allocations, and projections — is illustrative only. It is generated by a static model using fixed assumptions and should not be used as the basis for any investment decision.<br><br>
+      Past returns do not guarantee future results. All investments carry risk, including the risk of loss of capital. You should seek advice from a qualified financial adviser before making any investment decisions.
+    </div>
+    <label class="disclaimer-check" id="disclaimerCheck" onclick="toggleDisclaimer(event)">
+      <input type="checkbox" id="disclaimerBox" />
+      <div class="check-box"><span class="check-tick">✓</span></div>
+      <span class="check-label">I understand that this tool is for illustrative modelling purposes only. It does not constitute financial advice and should not be used as the basis for any investment decision. It is a portfolio demonstration tool only.</span>
+    </label>
+    <button class="btn-enter" id="btnEnter" onclick="enterApp()">Enter the tool</button>
+  </div>
+</div>
+
+<div id="mainApp">
+  <div class="disclaimer-banner">Illustrative modelling tool only — not financial advice. Past returns do not guarantee future results.</div>
+  <header>
+    <div class="header-label">Wealth Tech</div>
+    <h1>Robo-<span>Advisor</span></h1>
+    <p class="header-sub">Answer the questionnaire below. We'll build a personalised low-cost ETF portfolio and project your long-term outcomes — gross and net of tax, in nominal and real terms.</p>
+  </header>
+  <main>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="progress-label" id="progressLabel"></div>
+
+    <!-- S1 -->
+    <div class="section active" id="section-1">
+      <div class="section-title">Balance Sheet</div>
+      <div class="section-desc">Assets are split into fixed (illiquid) and investable (liquid) so we can determine your actual deployable capital.</div>
+      <div class="question"><label>Fixed assets (USD)</label><input type="number" id="fixedAssets" min="0" placeholder="e.g. 600,000" /><div class="hint">Property, vehicles, business interests, and any other non-liquid assets.</div></div>
+      <div class="question"><label>Investable assets (USD)</label><input type="number" id="investableAssets" min="0" placeholder="e.g. 250,000" /><div class="hint">Cash, equities, ETFs, bonds, retirement funds, and any other liquid or semi-liquid investment holdings. Used to calculate your ETF allocations and implementation guide.</div></div>
+      <div class="question"><label>Total liabilities (USD)</label><input type="number" id="q2" min="0" placeholder="e.g. 320,000" /><div class="hint">Mortgage balance, personal loans, vehicle finance, credit card debt, and any other outstanding obligations.</div></div>
+      <div class="nav-row"><button class="btn btn-primary" onclick="nextSection(1)">Continue</button></div>
+      <div class="error-msg" id="err-1">Please complete all fields before continuing.</div>
+    </div>
+
+    <!-- S2 -->
+    <div class="section" id="section-2">
+      <div class="section-title">Income &amp; Expenses</div>
+      <div class="section-desc">Your investable surplus determines how much you can realistically put to work each month.</div>
+      <div class="question"><label>Annual gross income (USD)</label><input type="number" id="q3" min="0" placeholder="e.g. 120,000" /><div class="hint">Total income before tax — salary, bonuses, rental income, or any other sources.</div></div>
+      <div class="question"><label>Total annual living expenses (USD)</label><input type="number" id="q4" min="0" placeholder="e.g. 72,000" /><div class="hint">Everything you spend in a year — housing, food, transport, school fees, insurance, entertainment.</div></div>
+      <div class="nav-row"><button class="btn btn-secondary" onclick="prevSection(2)">Back</button><button class="btn btn-primary" onclick="nextSection(2)">Continue</button></div>
+      <div class="error-msg" id="err-2">Please complete all fields before continuing.</div>
+    </div>
+
+    <!-- S3 -->
+    <div class="section" id="section-3">
+      <div class="section-title">Time Horizon</div>
+      <div class="section-desc">How long your money can stay invested is one of the most important factors in determining the right level of risk.</div>
+      <div class="question"><label>Your current age</label><input type="number" id="q5" min="18" max="85" placeholder="e.g. 45" /></div>
+      <div class="question"><label>Age at which you plan to retire</label><input type="number" id="q6" min="18" max="90" placeholder="e.g. 65" /></div>
+      <div class="nav-row"><button class="btn btn-secondary" onclick="prevSection(3)">Back</button><button class="btn btn-primary" onclick="nextSection(3)">Continue</button></div>
+      <div class="error-msg" id="err-3">Please complete all fields, and ensure your retirement age is greater than your current age.</div>
+    </div>
+
+    <!-- S4 -->
+    <div class="section" id="section-4">
+      <div class="section-title">Upcoming Capital Demands</div>
+      <div class="section-desc">Known future expenses reduce your investable horizon and affect the level of risk you can responsibly carry.</div>
+      <div class="question">
+        <label>Dependents — add each by age</label>
+        <div id="dependentRows"></div>
+        <button class="btn-add" onclick="addDependent()">+ Add dependent</button>
+        <div class="hint">Children, or any other dependents you financially support.</div>
+      </div>
+      <div class="question">
+        <label>Will any dependents attend university?</label>
+        <div class="options">
+          <label class="option" onclick="selectOption(this,'q8','yes')"><input type="radio" name="q8" value="yes"/><span class="option-dot"></span><span class="option-text">Yes — enter approximate years until university fees begin</span></label>
+          <label class="option" onclick="selectOption(this,'q8','no')"><input type="radio" name="q8" value="no"/><span class="option-dot"></span><span class="option-text">No</span></label>
+        </div>
+        <div id="uni-years-wrap" style="display:none; margin-top:12px;">
+          <input type="number" id="q8_years" min="0" max="20" placeholder="e.g. 2" style="max-width:160px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'DM Mono',monospace; font-size:13px; outline:none;" />
+          <div class="hint">If multiple dependents, enter the soonest expected start date.</div>
+        </div>
+      </div>
+      <div class="question">
+        <label>Any other significant non-recurring expenses in the next 10 years?</label>
+        <div class="options">
+          <label class="option" onclick="selectOption(this,'q9','yes')"><input type="radio" name="q9" value="yes"/><span class="option-dot"></span><span class="option-text">Yes — e.g. elderly parent care, property purchase, business investment</span></label>
+          <label class="option" onclick="selectOption(this,'q9','no')"><input type="radio" name="q9" value="no"/><span class="option-dot"></span><span class="option-text">No</span></label>
+        </div>
+      </div>
+      <div class="nav-row"><button class="btn btn-secondary" onclick="prevSection(4)">Back</button><button class="btn btn-primary" onclick="nextSection(4)">Continue</button></div>
+      <div class="error-msg" id="err-4">Please answer all questions before continuing.</div>
+    </div>
+
+    <!-- S5 -->
+    <div class="section" id="section-5">
+      <div class="section-title">Risk Attitude</div>
+      <div class="section-desc">Three questions to understand how you actually respond to market volatility.</div>
+      <div class="question">
+        <label>Q10 — If your portfolio dropped 25% in value over 12 months, what would you do?</label>
+        <div class="options">
+          <label class="option" onclick="selectOption(this,'q10','sell')"><input type="radio" name="q10" value="sell"/><span class="option-dot"></span><span class="option-text">Sell everything and move to cash</span></label>
+          <label class="option" onclick="selectOption(this,'q10','reduce')"><input type="radio" name="q10" value="reduce"/><span class="option-dot"></span><span class="option-text">Reduce equity exposure to limit further losses</span></label>
+          <label class="option" onclick="selectOption(this,'q10','hold')"><input type="radio" name="q10" value="hold"/><span class="option-dot"></span><span class="option-text">Hold and wait for the market to recover</span></label>
+          <label class="option" onclick="selectOption(this,'q10','buy')"><input type="radio" name="q10" value="buy"/><span class="option-dot"></span><span class="option-text">Buy more — lower prices are an opportunity</span></label>
+        </div>
+      </div>
+      <div class="question">
+        <label>Q11 — What is your primary investment objective?</label>
+        <div class="options">
+          <label class="option" onclick="selectOption(this,'q11','preserve')"><input type="radio" name="q11" value="preserve"/><span class="option-dot"></span><span class="option-text">Preserve what I have — protecting capital is the priority</span></label>
+          <label class="option" onclick="selectOption(this,'q11','income')"><input type="radio" name="q11" value="income"/><span class="option-dot"></span><span class="option-text">Generate steady income from my investments</span></label>
+          <label class="option" onclick="selectOption(this,'q11','grow')"><input type="radio" name="q11" value="grow"/><span class="option-dot"></span><span class="option-text">Grow my wealth steadily over the long term</span></label>
+          <label class="option" onclick="selectOption(this,'q11','maximise')"><input type="radio" name="q11" value="maximise"/><span class="option-dot"></span><span class="option-text">Maximise long-term growth — I can handle significant volatility</span></label>
+        </div>
+      </div>
+      <div class="question">
+        <label>Q12 — Have you invested in equities or funds before?</label>
+        <div class="options">
+          <label class="option" onclick="selectOption(this,'q12','never')"><input type="radio" name="q12" value="never"/><span class="option-dot"></span><span class="option-text">No — this would be my first time</span></label>
+          <label class="option" onclick="selectOption(this,'q12','stressful')"><input type="radio" name="q12" value="stressful"/><span class="option-dot"></span><span class="option-text">Yes — but I found market swings stressful</span></label>
+          <label class="option" onclick="selectOption(this,'q12','comfortable')"><input type="radio" name="q12" value="comfortable"/><span class="option-dot"></span><span class="option-text">Yes — and I'm comfortable with normal market movements</span></label>
+          <label class="option" onclick="selectOption(this,'q12','active')"><input type="radio" name="q12" value="active"/><span class="option-dot"></span><span class="option-text">Yes — I actively monitor and enjoy managing investments</span></label>
+        </div>
+      </div>
+      <div class="nav-row"><button class="btn btn-secondary" onclick="prevSection(5)">Back</button><button class="btn btn-primary" onclick="nextSection(5)">Continue</button></div>
+      <div class="error-msg" id="err-5">Please answer all three questions before continuing.</div>
+    </div>
+
+    <!-- S6 -->
+    <div class="section" id="section-6">
+      <div class="section-title">Monthly Contribution</div>
+      <div class="section-desc">How much can you invest each month? Contributions are parked in SGOV and deployed at your chosen tactical rebalancing frequency. Strategic rebalancing is always annual.</div>
+      <div class="question">
+        <label>Monthly contribution amount (USD)</label>
+        <input type="number" id="monthlyContribution" min="0" placeholder="e.g. 1,000" />
+        <div class="recommended" id="suggestedMonthlyHint"></div>
+        <div class="hint">Each month this amount transfers to your brokerage and is held in SGOV until your next tactical rebalancing date.</div>
+      </div>
+      <div class="question">
+        <label>Tactical rebalancing frequency</label>
+        <div class="freq-options">
+          <button class="freq-btn"          id="freq-quarterly"  onclick="selectFreq('quarterly')">Quarterly</button>
+          <button class="freq-btn selected" id="freq-semiannual" onclick="selectFreq('semiannual')">Semi-Annual</button>
+        </div>
+        <div class="hint" style="margin-top:10px;">How often you deploy accumulated SGOV cash and check tactical allocation ranges. Strategic rebalancing is conducted annually regardless of this selection.</div>
+      </div>
+      <div class="nav-row"><button class="btn btn-secondary" onclick="prevSection(6)">Back</button><button class="btn btn-primary" onclick="nextSection(6)">Continue</button></div>
+      <div class="error-msg" id="err-6">Please enter a monthly contribution amount.</div>
+    </div>
+
+    <!-- S7 -->
+    <div class="section" id="section-7">
+      <div class="section-title">Tax Rates</div>
+      <div class="section-desc">Enter your applicable tax rates. Defaults are set at 40% income tax and 20% CGT.</div>
+      <div class="question">
+        <div class="tax-row">
+          <div class="tax-field"><label>Income Tax Rate (%)</label><input type="number" id="incomeTaxRate" min="0" max="60" value="40" /></div>
+          <div class="tax-field"><label>Capital Gains Tax Rate (%)</label><input type="number" id="cgtRate" min="0" max="60" value="20" /></div>
+        </div>
+        <div class="tax-note">Income tax applies to returns from fixed income (AGG) and cash (SGOV).<br/>CGT applies to returns from equities (VT) and property (VNQ).<br/>Annual rebalancing is assumed for CGT purposes.</div>
+      </div>
+      <div class="nav-row"><button class="btn btn-secondary" onclick="prevSection(7)">Back</button><button class="btn btn-primary" onclick="submitQuestionnaire()">Build My Portfolio</button></div>
+      <div class="error-msg" id="err-7">Please enter valid tax rates before continuing.</div>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results">
+      <div class="results-header">
+        <div class="profile-badge" id="res-badge"></div>
+        <div class="results-title" id="res-title"></div>
+        <div class="results-desc"  id="res-desc"></div>
+        <div class="results-objective" id="res-objective"></div>
+      </div>
+
+      <div class="section-heading">How your score was calculated</div>
+      <div class="score-grid">
+        <div class="score-card"><div class="score-card-label">Risk Attitude</div><div class="score-card-value" id="sc-attitude">—</div><div class="score-card-max">out of 50</div></div>
+        <div class="score-card"><div class="score-card-label">Financial Capacity</div><div class="score-card-value" id="sc-capacity">—</div><div class="score-card-max">out of 30</div></div>
+        <div class="score-card"><div class="score-card-label">Horizon &amp; Liquidity</div><div class="score-card-value" id="sc-horizon">—</div><div class="score-card-max">out of 20</div></div>
+      </div>
+
+      <div class="allocation-section">
+        <div class="section-heading">Portfolio Visualisation</div>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-card-title">Asset Allocation</div>
+            <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">20-Year Growth Projection</div>
+            <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+            <div class="line-legend">
+              <div class="legend-item"><svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#c9a84c" stroke-width="2"/></svg> Gross Nominal</div>
+              <div class="legend-item"><svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#c9a84c" stroke-width="2" stroke-dasharray="5,4"/></svg> Gross Real</div>
+              <div class="legend-item"><svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#3ecf8e" stroke-width="2"/></svg> Net Nominal</div>
+              <div class="legend-item"><svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#3ecf8e" stroke-width="2" stroke-dasharray="5,4"/></svg> Net Real</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="allocation-section">
+        <div class="section-heading">Recommended ETFs</div>
+        <table class="etf-table">
+          <thead><tr><th>Asset Class</th><th>ETF</th><th class="right">Allocation</th><th class="right">Amount</th><th class="right">TER</th></tr></thead>
+          <tbody id="etfTableBody"></tbody>
+          <tfoot><tr>
+            <td colspan="2" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);">Totals</td>
+            <td class="right"><span class="alloc-pct">100%</span></td>
+            <td class="right"><span class="dollar-amount" id="totalPortfolioValue">—</span></td>
+            <td class="right"><span class="ter-badge" id="blendedTER">—</span></td>
+          </tr></tfoot>
+        </table>
+      </div>
+
+      <div class="allocation-section">
+        <div class="section-heading">Monthly Investment</div>
+        <div class="monthly-card">
+          <div class="monthly-label">Your contribution</div>
+          <div class="monthly-amount" id="monthlyAmount">—</div>
+          <div class="monthly-note" id="monthlyNote"></div>
+        </div>
+      </div>
+
+      <div class="allocation-section">
+        <div class="section-heading">Illustrative Growth Projections</div>
+        <table class="projection-table">
+          <thead><tr><th>Year</th><th class="proj-gross-nom">Gross Nominal</th><th class="proj-gross-real">Gross Real</th><th class="proj-net-nom">Net Nominal</th><th class="proj-net-real">Net Real</th></tr></thead>
+          <tbody id="projTableBody"></tbody>
+        </table>
+        <div class="proj-note" id="projNote"></div>
+      </div>
+
+      <div class="allocation-section">
+        <div class="section-heading">Step-by-Step Implementation Guide</div>
+        <div id="guideSteps"></div>
+      </div>
+
+      <div class="allocation-section" id="eduSection" style="display:none;">
+        <div class="section-heading">Education Liability Callout</div>
+        <div id="eduCards"></div>
+      </div>
+
+      <div class="allocation-section">
+        <div class="section-heading">Download Your Report</div>
+        <div class="pdf-row">
+          <button class="btn-pdf" onclick="printSummary()">↓ One-Page Summary</button>
+          <button class="btn-pdf" onclick="printFull()">↓ Full Detailed Report</button>
+        </div>
+      </div>
+
+      <div class="reset-row">
+        <button class="btn-reset" onclick="resetTool()">Start Over</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script>
+
+  let currentSection  = 1;
+  const totalSections = 7;
+  let dependentCount  = 0;
+  let pieChartInst    = null;
+  let lineChartInst   = null;
+  let selectedFreq    = 'semiannual';
+  let lastResult      = null;
+
+  function toggleDisclaimer(event) {
+    event.preventDefault();
+    const check = document.getElementById('disclaimerCheck');
+    const btn   = document.getElementById('btnEnter');
+    check.classList.toggle('checked');
+    btn.classList.toggle('enabled', check.classList.contains('checked'));
+  }
+
+  function enterApp() {
+    document.getElementById('disclaimerGate').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    updateProgress(1);
+  }
+
+  function updateProgress(section) {
+    const bar   = document.getElementById('progressBar');
+    const label = document.getElementById('progressLabel');
+    bar.innerHTML = '';
+    for (let i = 1; i <= totalSections; i++) {
+      const step = document.createElement('div');
+      step.className = 'progress-step' + (i < section ? ' done' : i === section ? ' active' : '');
+      bar.appendChild(step);
+    }
+    const names = ['Balance Sheet','Income & Expenses','Time Horizon','Capital Demands','Risk Attitude','Contribution & Rebalancing','Tax Rates'];
+    label.textContent = `Section ${section} of ${totalSections} — ${names[section - 1]}`;
+  }
+
+  function showSection(n) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById(`section-${n}`);
+    if (el) el.classList.add('active');
+    currentSection = n;
+    updateProgress(n);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (n === 6) {
+      const q3 = parseFloat(document.getElementById('q3').value) || 0;
+      const q4 = parseFloat(document.getElementById('q4').value) || 0;
+      const suggested = Math.round(Math.max(q3 - q4, 0) / 12 * 0.2);
+      if (suggested > 0) {
+        document.getElementById('suggestedMonthlyHint').textContent =
+          `Recommended: ${formatUSD(suggested)}/mo (20% of your monthly surplus)`;
+        if (!document.getElementById('monthlyContribution').value)
+          document.getElementById('monthlyContribution').value = suggested;
+      }
+    }
+  }
+
+  function nextSection(n) { if (!validateSection(n)) return; showSection(n + 1); }
+  function prevSection(n) { showSection(n - 1); }
+
+  function validateSection(n) {
+    const err = document.getElementById(`err-${n}`);
+    err.style.display = 'none';
+    if (n === 1) { if (!document.getElementById('fixedAssets').value || !document.getElementById('investableAssets').value || !document.getElementById('q2').value) { err.style.display = 'block'; return false; } }
+    if (n === 2) { if (!document.getElementById('q3').value || !document.getElementById('q4').value) { err.style.display = 'block'; return false; } }
+    if (n === 3) { const q5 = parseInt(document.getElementById('q5').value); const q6 = parseInt(document.getElementById('q6').value); if (!q5 || !q6 || q6 <= q5) { err.style.display = 'block'; return false; } }
+    if (n === 4) { if (!document.querySelector('input[name="q8"]:checked') || !document.querySelector('input[name="q9"]:checked')) { err.style.display = 'block'; return false; } }
+    if (n === 5) { if (!document.querySelector('input[name="q10"]:checked') || !document.querySelector('input[name="q11"]:checked') || !document.querySelector('input[name="q12"]:checked')) { err.style.display = 'block'; return false; } }
+    if (n === 6) { if (!document.getElementById('monthlyContribution').value) { err.style.display = 'block'; return false; } }
+    return true;
+  }
+
+  function selectOption(el, name, value) {
+    document.querySelectorAll(`input[name="${name}"]`).forEach(r => r.closest('.option').classList.remove('selected'));
+    el.classList.add('selected');
+    el.querySelector('input').checked = true;
+    if (name === 'q8') document.getElementById('uni-years-wrap').style.display = value === 'yes' ? 'block' : 'none';
+  }
+
+  function selectFreq(freq) {
+    selectedFreq = freq;
+    document.querySelectorAll('.freq-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById(`freq-${freq}`).classList.add('selected');
+  }
+
+  function addDependent() {
+    dependentCount++;
+    const row = document.createElement('div');
+    row.className = 'dependent-row';
+    row.id = `dep-${dependentCount}`;
+    row.innerHTML = `<input type="number" min="0" max="25" placeholder="Age" id="dep-age-${dependentCount}" /><button class="btn-remove" onclick="removeDependent(${dependentCount})">×</button>`;
+    document.getElementById('dependentRows').appendChild(row);
+  }
+  function removeDependent(id) { const r = document.getElementById(`dep-${id}`); if (r) r.remove(); }
+
+  function collectAnswers() {
+    const dependents = [];
+    document.querySelectorAll('[id^="dep-age-"]').forEach(input => { const age = parseInt(input.value); if (!isNaN(age)) dependents.push({ age }); });
+    const q8val = document.querySelector('input[name="q8"]:checked')?.value;
+    return {
+      fixedAssets:           parseFloat(document.getElementById('fixedAssets').value)          || 0,
+      investableAssets:      parseFloat(document.getElementById('investableAssets').value)      || 0,
+      q2:                    parseFloat(document.getElementById('q2').value)                    || 0,
+      q3:                    parseFloat(document.getElementById('q3').value)                    || 0,
+      q4:                    parseFloat(document.getElementById('q4').value)                    || 0,
+      q5:                    parseInt(document.getElementById('q5').value)                      || 0,
+      q6:                    parseInt(document.getElementById('q6').value)                      || 65,
+      q7_dependents:         dependents,
+      q8_university:         q8val === 'yes',
+      q8_years:              parseInt(document.getElementById('q8_years').value)                || 5,
+      q9_other:              document.querySelector('input[name="q9"]:checked')?.value === 'yes',
+      q10:                   document.querySelector('input[name="q10"]:checked')?.value         || '',
+      q11:                   document.querySelector('input[name="q11"]:checked')?.value         || '',
+      q12:                   document.querySelector('input[name="q12"]:checked')?.value         || '',
+      monthlyContribution:   parseFloat(document.getElementById('monthlyContribution').value)   || 0,
+      contributionFrequency: selectedFreq,
+      incomeTaxRate:         parseFloat(document.getElementById('incomeTaxRate').value)         || 40,
+      cgtRate:               parseFloat(document.getElementById('cgtRate').value)               || 20
+    };
+  }
+
+  function submitQuestionnaire() {
+    const err = document.getElementById('err-7');
+    err.style.display = 'none';
+    const itx = parseFloat(document.getElementById('incomeTaxRate').value);
+    const cgt = parseFloat(document.getElementById('cgtRate').value);
+    if (isNaN(itx) || isNaN(cgt) || itx < 0 || cgt < 0 || itx > 100 || cgt > 100) { err.style.display = 'block'; return; }
+    const answers = collectAnswers();
+    lastResult    = runEngine(answers);
+    renderResults(lastResult, answers);
+  }
+
+  function formatUSD(n) {
+    if (n >= 1000000) return '$' + (n / 1000000).toFixed(2) + 'M';
+    if (n >= 1000)    return '$' + (n / 1000).toFixed(0) + ',000';
+    return '$' + n.toFixed(0);
+  }
+
+  function renderResults(result, answers) {
+    document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+    document.getElementById('progressBar').style.display   = 'none';
+    document.getElementById('progressLabel').style.display = 'none';
+
+    const { profile, score, blendedTER, monthlyContribution, projections,
+            educationLiabilities, etfAllocations, implementationGuide, suggestedMonthly, investableAssets } = result;
+
+    document.getElementById('res-badge').textContent     = profile.code + ' — ' + profile.label;
+    document.getElementById('res-title').textContent     = 'Your portfolio: ' + profile.label;
+    document.getElementById('res-desc').textContent      = profile.description;
+    document.getElementById('res-objective').textContent = profile.objective;
+    document.getElementById('sc-attitude').textContent   = score.breakdown.attitude;
+    document.getElementById('sc-capacity').textContent   = score.breakdown.capacity;
+    document.getElementById('sc-horizon').textContent    = score.breakdown.horizon;
+
+    // PIE CHART
+    const allocation = profile.allocation;
+    const pieColors  = ['#c9a84c','#3ecf8e','#5b9bd5','#7a8494'];
+    const pieLabels  = ['Equities','Property','Fixed Income','Cash'];
+    const allVals    = [allocation.equities, allocation.property, allocation.fixedIncome, allocation.cash];
+    const pieData    = allVals.filter(v => v > 0);
+    const pieLabelsF = pieLabels.filter((l,i) => allVals[i] > 0).map((l,i) => `${l} ${pieData[i]}%`);
+    const pieColorsF = pieColors.filter((c,i) => allVals[i] > 0);
+    if (pieChartInst) pieChartInst.destroy();
+    pieChartInst = new Chart(document.getElementById('pieChart'), {
+      type: 'doughnut',
+      data: { labels: pieLabelsF, datasets: [{ data: pieData, backgroundColor: pieColorsF, borderColor: '#0b0e11', borderWidth: 3 }] },
+      options: { plugins: { legend: { position: 'bottom', labels: { color: '#a8b0bc', font: { family: 'DM Mono', size: 11 }, padding: 16, boxWidth: 12 } } }, cutout: '60%' }
+    });
+
+    // LINE CHART
+    const years = Array.from({ length: 20 }, (_, i) => `Yr ${i + 1}`);
+    if (lineChartInst) lineChartInst.destroy();
+    lineChartInst = new Chart(document.getElementById('lineChart'), {
+      type: 'line',
+      data: {
+        labels: years,
+        datasets: [
+          { data: projections.grossNominal, borderColor: '#c9a84c', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.4 },
+          { data: projections.grossReal,    borderColor: '#c9a84c', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5,4], pointRadius: 0, tension: 0.4 },
+          { data: projections.netNominal,   borderColor: '#3ecf8e', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.4 },
+          { data: projections.netReal,      borderColor: '#3ecf8e', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5,4], pointRadius: 0, tension: 0.4 }
+        ]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#7a8494', font: { family: 'DM Mono', size: 10 } }, grid: { color: '#242c38' } },
+          y: { ticks: { color: '#7a8494', font: { family: 'DM Mono', size: 10 }, callback: v => v >= 1000000 ? '$'+(v/1000000).toFixed(1)+'M' : '$'+(v/1000).toFixed(0)+'K' }, grid: { color: '#242c38' } }
+        }
+      }
+    });
+
+    // ETF TABLE
+    const classLabels = { equities: 'Equities', property: 'Property', fixedIncome: 'Fixed Income', cash: 'Cash' };
+    const taxLabels   = { income: 'Income tax', cgt: 'CGT' };
+    const tbody = document.getElementById('etfTableBody');
+    tbody.innerHTML = '';
+    for (const [cls, data] of Object.entries(etfAllocations)) {
+      if (data.percentage === 0 || !data.ticker) continue;
+      const etf = ETF_DATA[data.ticker];
+      const tr  = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${classLabels[cls]}</td>
+        <td><div class="etf-ticker">${etf.ticker}</div><div class="etf-name">${etf.name} (${etf.ticker})</div><div class="etf-rationale">${etf.rationale}</div><div><span class="tax-badge">${taxLabels[etf.taxType]}</span></div></td>
+        <td class="right"><span class="alloc-pct">${data.percentage}%</span></td>
+        <td class="right"><span class="dollar-amount">${formatUSD(data.dollarAmount)}</span></td>
+        <td class="right"><span class="ter-badge">${etf.ter}%</span></td>`;
+      tbody.appendChild(tr);
+    }
+    document.getElementById('totalPortfolioValue').textContent = formatUSD(investableAssets);
+    document.getElementById('blendedTER').textContent          = blendedTER.toFixed(3) + '%';
+
+    // MONTHLY
+    const freqLabels = { quarterly: 'quarterly', semiannual: 'semi-annually' };
+    const freqWord   = freqLabels[result.contributionFreq] || 'semi-annually';
+    document.getElementById('monthlyAmount').textContent = formatUSD(monthlyContribution) + ' / mo';
+    document.getElementById('monthlyNote').textContent =
+      `Contributions are held in SGOV each month and deployed ${freqWord} at your tactical rebalancing date. Recommended starting point based on your surplus: ${formatUSD(suggestedMonthly)}/mo.`;
+
+    // PROJECTION NOTE
+    document.getElementById('projNote').textContent =
+      `Projections include both portfolio growth and your ${formatUSD(monthlyContribution)}/mo contribution, deployed ${freqWord} into the portfolio. Investable assets of ${formatUSD(investableAssets)} are used as the starting lump sum. Gross figures show growth before tax. Net figures show growth after income tax and CGT. Income tax applies to fixed income and cash returns. CGT applies to equity and property returns. Real figures are adjusted for 2.5% annual inflation. Returns are not guaranteed. This is illustrative modelling only.`;
+
+    // PROJECTION TABLE
+    const projBody = document.getElementById('projTableBody');
+    projBody.innerHTML = '';
+    [5, 10, 15, 20].forEach(yr => {
+      const i  = yr - 1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>Year ${yr}</td><td class="proj-gross-nom">${formatUSD(projections.grossNominal[i])}</td><td class="proj-gross-real">${formatUSD(projections.grossReal[i])}</td><td class="proj-net-nom">${formatUSD(projections.netNominal[i])}</td><td class="proj-net-real">${formatUSD(projections.netReal[i])}</td>`;
+      projBody.appendChild(tr);
+    });
+
+    // IMPLEMENTATION GUIDE
+    const guideDiv = document.getElementById('guideSteps');
+    guideDiv.innerHTML = '';
+    implementationGuide.forEach(step => {
+      const div = document.createElement('div');
+      div.className = 'guide-step';
+      div.innerHTML = `<div class="guide-step-header"><div class="guide-step-number">${step.number}</div><div class="guide-step-title">${step.title}</div></div><div class="guide-step-body">${step.body}</div>`;
+      guideDiv.appendChild(div);
+    });
+
+    // EDUCATION LIABILITIES
+    if (educationLiabilities.length > 0) {
+      document.getElementById('eduSection').style.display = 'block';
+      const eduCards = document.getElementById('eduCards');
+      eduCards.innerHTML = '';
+      educationLiabilities.forEach(lib => {
+        const card = document.createElement('div');
+        card.className = `edu-card urgency-${lib.urgency}`;
+        card.innerHTML = `<div class="edu-urgency">${lib.urgency.toUpperCase()} PRIORITY</div><div class="edu-message">${lib.message}</div>`;
+        eduCards.appendChild(card);
+      });
+    }
+
+    document.getElementById('results').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // PDF SUMMARY
+  function printSummary() {
+    if (!lastResult) return;
+    const { profile, blendedTER, monthlyContribution, etfAllocations, projections, investableAssets } = lastResult;
+    const allocRows = Object.entries(etfAllocations).filter(([,d]) => d.percentage > 0 && d.ticker).map(([cls,d]) => {
+      const etf = ETF_DATA[d.ticker];
+      return `<tr><td>${({equities:'Equities',property:'Property',fixedIncome:'Fixed Income',cash:'Cash'})[cls]}</td><td>${etf.name} (${etf.ticker})</td><td class="r">${d.percentage}%</td><td class="r">${formatUSD(d.dollarAmount)}</td><td class="r">${etf.ter}%</td></tr>`;
+    }).join('');
+    const html = `<html><head><title>Portfolio Summary — ${profile.label}</title>
+    <style>body{font-family:Georgia,serif;font-size:12px;color:#1a1a1a;margin:48px;line-height:1.6}h1{font-size:26px;font-weight:300;margin-bottom:4px}h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#666;margin:28px 0 10px;border-bottom:1px solid #ddd;padding-bottom:6px}table{width:100%;border-collapse:collapse;font-size:11px}th{font-size:10px;text-transform:uppercase;letter-spacing:.08em;text-align:left;color:#888;padding:6px 8px;border-bottom:1px solid #ddd}.r{text-align:right}td{padding:8px;border-bottom:1px solid #f0f0f0}tfoot td{border-top:2px solid #c9a84c;border-bottom:none;font-weight:600;padding-top:10px}.badge{display:inline-block;border:1px solid #c9a84c;color:#c9a84c;padding:3px 10px;font-size:10px;letter-spacing:.12em;margin-bottom:10px;font-family:monospace}.obj{font-size:11px;color:#555;border-left:3px solid #c9a84c;padding:8px 12px;margin:8px 0 16px;background:#faf8f4}.disc{font-size:9px;color:#aaa;margin-top:32px;border-top:1px solid #eee;padding-top:10px}</style></head><body>
+    <div class="badge">${profile.code} — ${profile.label}</div>
+    <h1>Wealth Tech Robo-Advisor</h1>
+    <div style="font-size:12px;color:#444;line-height:1.7;margin-bottom:12px;">${profile.description}</div>
+    <div class="obj">${profile.objective}</div>
+    <h2>Asset Allocation &amp; ETF Recommendations</h2>
+    <table><thead><tr><th>Asset Class</th><th>ETF</th><th class="r">Allocation</th><th class="r">Amount</th><th class="r">TER</th></tr></thead>
+    <tbody>${allocRows}</tbody>
+    <tfoot><tr><td colspan="2">Totals</td><td class="r">100%</td><td class="r">${formatUSD(investableAssets)}</td><td class="r">${blendedTER.toFixed(3)}%</td></tr></tfoot></table>
+    <h2>Illustrative Projections (incl. ${formatUSD(monthlyContribution)}/mo contributions)</h2>
+    <table><thead><tr><th>Year</th><th class="r">Gross Nominal</th><th class="r">Gross Real</th><th class="r">Net Nominal</th><th class="r">Net Real</th></tr></thead>
+    <tbody>${[5,10,15,20].map(yr=>`<tr><td>Year ${yr}</td><td class="r">${formatUSD(projections.grossNominal[yr-1])}</td><td class="r">${formatUSD(projections.grossReal[yr-1])}</td><td class="r">${formatUSD(projections.netNominal[yr-1])}</td><td class="r">${formatUSD(projections.netReal[yr-1])}</td></tr>`).join('')}</tbody></table>
+    <div class="disc">This report is for illustrative modelling purposes only. It does not constitute financial advice and should not be used as the basis for any investment decision. Projections include monthly contributions of ${formatUSD(monthlyContribution)}/mo and a starting lump sum of ${formatUSD(investableAssets)}. Past returns do not guarantee future results.</div>
+    </body></html>`;
+    const w = window.open('','_blank'); w.document.write(html); w.document.close(); w.print();
+  }
+
+  // PDF FULL REPORT — line chart only, full width
+  function buildSVGChart(projections) {
+    const W = 680, H = 220, padL = 64, padR = 20, padT = 16, padB = 36;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+    const years  = 20;
+
+    // Combine all series to find min/max
+    const allVals = [...projections.grossNominal, ...projections.grossReal, ...projections.netNominal, ...projections.netReal];
+    const minVal  = 0;
+    const maxVal  = Math.ceil(Math.max(...allVals) * 1.08 / 100000) * 100000;
+
+    const xScale = i  => padL + (i / (years - 1)) * chartW;
+    const yScale = v  => padT + chartH - ((v - minVal) / (maxVal - minVal)) * chartH;
+
+    function polyline(data, color, dash) {
+      const pts = data.map((v, i) => `${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`).join(' ');
+      return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" ${dash ? 'stroke-dasharray="6,4"' : ''} stroke-linejoin="round" stroke-linecap="round"/>`;
+    }
+
+    // Y axis ticks
+    const tickCount = 5;
+    let yTicks = '';
+    for (let t = 0; t <= tickCount; t++) {
+      const v   = minVal + (maxVal - minVal) * (t / tickCount);
+      const y   = yScale(v);
+      const lbl = v >= 1000000 ? '$' + (v/1000000).toFixed(1) + 'M' : '$' + (v/1000).toFixed(0) + 'K';
+      yTicks += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#e0e0e0" stroke-width="0.5"/>`;
+      yTicks += `<text x="${(padL - 6).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="8" fill="#888">${lbl}</text>`;
+    }
+
+    // X axis ticks (every 2 years)
+    let xTicks = '';
+    for (let i = 0; i < years; i += 2) {
+      const x = xScale(i);
+      xTicks += `<text x="${x.toFixed(1)}" y="${(H - padB + 14).toFixed(1)}" text-anchor="middle" font-size="8" fill="#888">Yr ${i+1}</text>`;
+    }
+
+    // Legend
+    const legendY = H - 6;
+    const centerX = W / 2;
+    const legend = `
+      <line x1="${centerX - 160}" y1="${legendY}" x2="${centerX - 142}" y2="${legendY}" stroke="#c9a84c" stroke-width="2"/>
+      <text x="${centerX - 138}" y="${legendY + 3}" font-size="8" fill="#555">Gross Nominal</text>
+      <line x1="${centerX - 60}" y1="${legendY}" x2="${centerX - 42}" y2="${legendY}" stroke="#c9a84c" stroke-width="2" stroke-dasharray="5,3"/>
+      <text x="${centerX - 38}" y="${legendY + 3}" font-size="8" fill="#555">Gross Real</text>
+      <line x1="${centerX + 20}" y1="${legendY}" x2="${centerX + 38}" y2="${legendY}" stroke="#3ecf8e" stroke-width="2"/>
+      <text x="${centerX + 42}" y="${legendY + 3}" font-size="8" fill="#555">Net Nominal</text>
+      <line x1="${centerX + 120}" y1="${legendY}" x2="${centerX + 138}" y2="${legendY}" stroke="#3ecf8e" stroke-width="2" stroke-dasharray="5,3"/>
+      <text x="${centerX + 142}" y="${legendY + 3}" font-size="8" fill="#555">Net Real</text>`;
+
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+      <rect width="${W}" height="${H}" fill="white"/>
+      ${yTicks}
+      ${xTicks}
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + chartH}" stroke="#ccc" stroke-width="1"/>
+      <line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="#ccc" stroke-width="1"/>
+      ${polyline(projections.grossNominal, '#c9a84c', false)}
+      ${polyline(projections.grossReal,    '#c9a84c', true)}
+      ${polyline(projections.netNominal,   '#3ecf8e', false)}
+      ${polyline(projections.netReal,      '#3ecf8e', true)}
+      ${legend}
+    </svg>`;
+  }
+
+  function printFull() {
+    if (!lastResult) return;
+    const { profile, blendedTER, monthlyContribution, etfAllocations, projections, investableAssets, implementationGuide } = lastResult;
+    const freqWord   = { quarterly: 'quarterly', semiannual: 'semi-annually' }[lastResult.contributionFreq] || 'semi-annually';
+    const rebalDates = lastResult.contributionFreq === 'quarterly' ? 'March, June, September, December' : 'June and December';
+    const svgChart   = buildSVGChart(projections);
+
+    const allocRows = Object.entries(etfAllocations).filter(([,d]) => d.percentage > 0 && d.ticker).map(([cls,d]) => {
+      const etf = ETF_DATA[d.ticker];
+      return `<tr><td>${({equities:'Equities',property:'Property',fixedIncome:'Fixed Income',cash:'Cash'})[cls]}</td><td>${etf.name} (${etf.ticker})</td><td class="r">${d.percentage}%</td><td class="r">${formatUSD(d.dollarAmount)}</td><td class="r">${etf.ter}%</td></tr>`;
+    }).join('');
+
+    const guideHTML = implementationGuide.map(s => `
+      <div style="margin-bottom:20px;padding:16px;border:1px solid #eee;border-radius:4px;page-break-inside:avoid;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+          <div style="width:22px;height:22px;border-radius:50%;background:#c9a84c;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0;">${s.number}</div>
+          <div style="font-weight:600;font-size:12px;">${s.title}</div>
+        </div>
+        <div style="font-size:11px;color:#444;line-height:1.8;white-space:pre-line;">${s.body}</div>
+      </div>`).join('');
+
+    const html = `<html><head><title>Portfolio Report — ${profile.label}</title>
+    <style>body{font-family:Georgia,serif;font-size:12px;color:#1a1a1a;margin:48px;line-height:1.6}h1{font-size:26px;font-weight:300;margin-bottom:4px}h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#666;margin:32px 0 10px;border-bottom:1px solid #ddd;padding-bottom:6px}h2.np{page-break-before:always}table{width:100%;border-collapse:collapse;font-size:11px}th{font-size:9px;text-transform:uppercase;letter-spacing:.08em;text-align:left;color:#888;padding:6px 8px;border-bottom:1px solid #ddd}.r{text-align:right}td{padding:8px;border-bottom:1px solid #f0f0f0}tfoot td{border-top:2px solid #c9a84c;border-bottom:none;font-weight:600;padding-top:10px}.badge{display:inline-block;border:1px solid #c9a84c;color:#c9a84c;padding:3px 10px;font-size:10px;letter-spacing:.12em;margin-bottom:10px;font-family:monospace}.obj{font-size:11px;color:#555;border-left:3px solid #c9a84c;padding:8px 12px;margin:8px 0 16px;background:#faf8f4}.chart-box{border:1px solid #eee;padding:16px;border-radius:4px;margin:16px 0}.rebal-grid{display:flex;gap:16px;margin:12px 0}.rebal-box{flex:1;border:1px solid #eee;border-radius:4px;padding:14px}.rebal-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#c9a84c;font-weight:600;margin-bottom:4px}.rebal-freq{font-size:11px;color:#1a1a1a;font-weight:600;margin-bottom:8px}.rebal-text{font-size:11px;color:#444;line-height:1.7}.rebal-note{font-size:10px;color:#888;margin-top:8px;padding-top:8px;border-top:1px solid #eee}.reminder-box{border:1px solid #eee;border-radius:4px;padding:14px;margin-top:12px;background:#fafafa}.reminder-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#c9a84c;font-weight:600;margin-bottom:8px}.disc{font-size:9px;color:#aaa;margin-top:32px;border-top:1px solid #eee;padding-top:10px}</style></head><body>
+    <div class="badge">${profile.code} — ${profile.label}</div>
+    <h1>Wealth Tech Robo-Advisor</h1>
+    <div style="font-size:12px;color:#444;line-height:1.7;margin-bottom:12px;">${profile.description}</div>
+    <div class="obj">${profile.objective}</div>
+    <h2>Asset Allocation &amp; ETF Recommendations</h2>
+    <table><thead><tr><th>Asset Class</th><th>ETF</th><th class="r">Allocation</th><th class="r">Amount</th><th class="r">TER</th></tr></thead>
+    <tbody>${allocRows}</tbody>
+    <tfoot><tr><td colspan="2">Totals</td><td class="r">100%</td><td class="r">${formatUSD(investableAssets)}</td><td class="r">${blendedTER.toFixed(3)}%</td></tr></tfoot></table>
+    <h2>Illustrative Projections (incl. ${formatUSD(monthlyContribution)}/mo contributions)</h2>
+    <table><thead><tr><th>Year</th><th class="r">Gross Nominal</th><th class="r">Gross Real</th><th class="r">Net Nominal</th><th class="r">Net Real</th></tr></thead>
+    <tbody>${[5,10,15,20].map(yr=>`<tr><td>Year ${yr}</td><td class="r">${formatUSD(projections.grossNominal[yr-1])}</td><td class="r">${formatUSD(projections.grossReal[yr-1])}</td><td class="r">${formatUSD(projections.netNominal[yr-1])}</td><td class="r">${formatUSD(projections.netReal[yr-1])}</td></tr>`).join('')}</tbody></table>
+    <h2>20-Year Growth Projection</h2>
+    <div class="chart-box">${svgChart}</div>
+    <h2 class="np">Step-by-Step Implementation Guide</h2>
+    ${guideHTML}
+    <div class="disc">This report is for illustrative modelling purposes only. It does not constitute financial advice and should not be used as the basis for any investment decision. Projections include monthly contributions of ${formatUSD(monthlyContribution)}/mo and a starting lump sum of ${formatUSD(investableAssets)}. Past returns do not guarantee future results.</div>
+    </body></html>`;
+
+    const w = window.open('','_blank'); w.document.write(html); w.document.close();
+    setTimeout(() => w.print(), 500);
+  }
+
+  // RESET
+  function resetTool() {
+    document.getElementById('results').style.display = 'none';
+    document.querySelectorAll('.section').forEach(s => { s.style.display = ''; s.classList.remove('active'); });
+    document.getElementById('progressBar').style.display   = '';
+    document.getElementById('progressLabel').style.display = '';
+    document.getElementById('section-1').classList.add('active');
+    document.getElementById('dependentRows').innerHTML = '';
+    dependentCount = 0;
+    document.querySelectorAll('input[type="number"]').forEach(i => { if (i.id !== 'incomeTaxRate' && i.id !== 'cgtRate') i.value = ''; });
+    document.getElementById('incomeTaxRate').value = '40';
+    document.getElementById('cgtRate').value       = '20';
+    document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+    document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+    document.getElementById('uni-years-wrap').style.display = 'none';
+    document.getElementById('eduSection').style.display     = 'none';
+    selectedFreq = 'semiannual';
+    document.querySelectorAll('.freq-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('freq-semiannual').classList.add('selected');
+    if (pieChartInst)  { pieChartInst.destroy();  pieChartInst  = null; }
+    if (lineChartInst) { lineChartInst.destroy(); lineChartInst = null; }
+    lastResult = null; currentSection = 1; updateProgress(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+</script>
+</body>
+</html>
